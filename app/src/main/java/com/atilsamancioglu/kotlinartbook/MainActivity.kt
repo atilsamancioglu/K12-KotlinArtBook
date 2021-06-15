@@ -8,20 +8,26 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import kotlinx.android.synthetic.main.activity_main.*
+import com.atilsamancioglu.kotlinartbook.databinding.ActivityMainBinding
 import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivityMainBinding
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
+
 
         val artNameList = ArrayList<String>()
         val artIdList = ArrayList<Int>()
 
         val arrayAdapter = ArrayAdapter(this,android.R.layout.simple_list_item_1,artNameList)
-        listView.adapter = arrayAdapter
+        binding.listView.adapter = arrayAdapter
 
 
         try {
@@ -47,8 +53,8 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        listView.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
-            val intent = Intent(this,Main2Activity::class.java)
+        binding.listView.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
+            val intent = Intent(this,DetailsActivity::class.java)
             intent.putExtra("info","old")
             intent.putExtra("id",artIdList[position])
             startActivity(intent)
@@ -68,7 +74,7 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
         if (item.itemId == R.id.add_art_item) {
-            val intent = Intent(this,Main2Activity::class.java)
+            val intent = Intent(this,DetailsActivity::class.java)
             intent.putExtra("info","new")
             startActivity(intent)
         }

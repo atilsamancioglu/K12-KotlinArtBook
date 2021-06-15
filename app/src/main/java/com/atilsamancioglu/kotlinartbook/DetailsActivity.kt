@@ -1,49 +1,57 @@
 package com.atilsamancioglu.kotlinartbook
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
-import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
-import androidx.core.app.ActivityCompat
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main2.*
+import com.atilsamancioglu.kotlinartbook.databinding.ActivityDetailsBinding
 import java.io.ByteArrayOutputStream
-import java.lang.Exception
+import java.io.IOException
 
-class Main2Activity : AppCompatActivity() {
+class DetailsActivity : AppCompatActivity() {
 
-    var selectedPicture : Uri? = null
     var selectedBitmap : Bitmap? = null
+    private lateinit var binding: ActivityDetailsBinding
+    private lateinit var activityResultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var permissionLauncher: ActivityResultLauncher<String>
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main2)
+        binding = ActivityDetailsBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
+
+        registerLauncher()
 
         val intent = intent
 
         val info = intent.getStringExtra("info")
 
         if (info.equals("new")) {
-            artText.setText("")
-            artistText.setText("")
-            yearText.setText("")
-            button.visibility = View.VISIBLE
+            binding.artText.setText("")
+            binding.artistText.setText("")
+            binding.yearText.setText("")
+            binding.button.visibility = View.VISIBLE
 
             val selectedImageBackground = BitmapFactory.decodeResource(applicationContext.resources,R.drawable.selectimage)
-            imageView.setImageBitmap(selectedImageBackground)
+            binding.imageView.setImageBitmap(selectedImageBackground)
 
         } else {
-            button.visibility = View.INVISIBLE
+            binding.button.visibility = View.INVISIBLE
             val selectedId = intent.getIntExtra("id",1)
 
 
@@ -57,13 +65,13 @@ class Main2Activity : AppCompatActivity() {
             val imageIx = cursor.getColumnIndex("image")
 
             while (cursor.moveToNext()) {
-                artText.setText(cursor.getString(artNameIx))
-                artistText.setText(cursor.getString(artistNameIx))
-                yearText.setText(cursor.getString(yearIx))
+                binding.artText.setText(cursor.getString(artNameIx))
+                binding.artistText.setText(cursor.getString(artistNameIx))
+                binding.yearText.setText(cursor.getString(yearIx))
 
                 val byteArray = cursor.getBlob(imageIx)
                 val bitmap = BitmapFactory.decodeByteArray(byteArray,0,byteArray.size)
-                imageView.setImageBitmap(bitmap)
+                binding.imageView.setImageBitmap(bitmap)
 
             }
 
@@ -77,9 +85,9 @@ class Main2Activity : AppCompatActivity() {
 
     fun save(view: View) {
 
-        val artName = artText.text.toString()
-        val artistName = artistText.text.toString()
-        val year = yearText.text.toString()
+        val artName = binding.artText.text.toString()
+        val artistName = binding.artistText.text.toString()
+        val year = binding.yearText.text.toString()
 
         if (selectedBitmap != null) {
             val smallBitmap = makeSmallerBitmap(selectedBitmap!!,300)
@@ -145,13 +153,81 @@ class Main2Activity : AppCompatActivity() {
 
 
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),1)
+            //ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.READ_EXTERNAL_STORAGE},1);
+            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+
         } else {
             val intentToGallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intentToGallery,2)
+            //startActivityForResult(intentToGallery,2)
+            activityResultLauncher.launch(intentToGallery)
+
         }
 
     }
+
+    /*
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Intent intentToGallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                //startActivityForResult(intentToGallery,2);
+                activityResultLauncher.launch(intentToGallery);
+
+            }
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+     */
+    fun registerLauncher() {
+        activityResultLauncher = registerForActivityResult(
+            StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val intentFromResult = result.data
+                if (intentFromResult != null) {
+                    val imageData = intentFromResult.data
+                    try {
+                        if (Build.VERSION.SDK_INT >= 28) {
+                            val source = ImageDecoder.createSource(
+                                this@DetailsActivity.contentResolver,
+                                imageData!!
+                            )
+                            selectedBitmap = ImageDecoder.decodeBitmap(source)
+                            binding.imageView.setImageBitmap(selectedBitmap)
+                        } else {
+                            selectedBitmap = MediaStore.Images.Media.getBitmap(
+                                this@DetailsActivity.contentResolver,
+                                imageData
+                            )
+                            binding.imageView.setImageBitmap(selectedBitmap)
+                        }
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+        permissionLauncher = registerForActivityResult(
+            RequestPermission()
+        ) { result ->
+            if (result) {
+                //permission granted
+                val intentToGallery =
+                    Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                activityResultLauncher.launch(intentToGallery)
+            } else {
+                //permission denied
+                Toast.makeText(this@DetailsActivity, "Permisson needed!", Toast.LENGTH_LONG)
+                    .show()
+            }
+        }
+    }
+
+
+    /*
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -185,11 +261,11 @@ class Main2Activity : AppCompatActivity() {
                         val source =
                             ImageDecoder.createSource(this.contentResolver, selectedPicture!!)
                         selectedBitmap = ImageDecoder.decodeBitmap(source)
-                        imageView.setImageBitmap(selectedBitmap)
+                        binding.imageView.setImageBitmap(selectedBitmap)
                     } else {
                         selectedBitmap =
                             MediaStore.Images.Media.getBitmap(this.contentResolver, selectedPicture)
-                        imageView.setImageBitmap(selectedBitmap)
+                        binding.imageView.setImageBitmap(selectedBitmap)
                     }
                 }
             } catch (e: Exception) {
@@ -201,6 +277,8 @@ class Main2Activity : AppCompatActivity() {
 
         super.onActivityResult(requestCode, resultCode, data)
     }
+
+     */
 
 
 
