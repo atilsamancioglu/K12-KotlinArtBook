@@ -8,13 +8,16 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.atilsamancioglu.kotlinartbook.databinding.ActivityMainBinding
 import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
+    private lateinit var artList : ArrayList<Art>
+    private lateinit var artAdapter : ArtAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,13 +25,10 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-
-        val artNameList = ArrayList<String>()
-        val artIdList = ArrayList<Int>()
-
-        val arrayAdapter = ArrayAdapter(this,android.R.layout.simple_list_item_1,artNameList)
-        binding.listView.adapter = arrayAdapter
-
+        artList = ArrayList<Art>()
+        artAdapter = ArtAdapter(artList)
+        binding.recyclerView.layoutManager = LinearLayoutManager(this)
+        binding.recyclerView.adapter = artAdapter
 
         try {
 
@@ -39,11 +39,13 @@ class MainActivity : AppCompatActivity() {
             val idIx = cursor.getColumnIndex("id")
 
             while (cursor.moveToNext()) {
-                artNameList.add(cursor.getString(artNameIx))
-                artIdList.add(cursor.getInt(idIx))
+                val name = cursor.getString(artNameIx)
+                val id = cursor.getInt(idIx)
+                val art = Art(name,id)
+                artList.add(art)
             }
 
-            arrayAdapter.notifyDataSetChanged()
+            artAdapter.notifyDataSetChanged()
 
             cursor.close()
 
@@ -53,12 +55,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        binding.listView.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
-            val intent = Intent(this,DetailsActivity::class.java)
-            intent.putExtra("info","old")
-            intent.putExtra("id",artIdList[position])
-            startActivity(intent)
-        }
 
 
     }

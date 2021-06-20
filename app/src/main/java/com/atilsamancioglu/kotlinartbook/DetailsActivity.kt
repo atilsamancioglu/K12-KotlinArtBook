@@ -16,8 +16,10 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.atilsamancioglu.kotlinartbook.databinding.ActivityDetailsBinding
+import com.google.android.material.snackbar.Snackbar
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
@@ -122,11 +124,7 @@ class DetailsActivity : AppCompatActivity() {
             startActivity(intent)
 
             //finish()
-
         }
-
-
-
     }
 
     fun makeSmallerBitmap(image: Bitmap, maximumSize : Int) : Bitmap {
@@ -143,65 +141,38 @@ class DetailsActivity : AppCompatActivity() {
             val scaledWidth = height * bitmapRatio
             width = scaledWidth.toInt()
         }
-
         return Bitmap.createScaledBitmap(image,width,height,true)
-
     }
-
 
     fun selectImage(view: View) {
-
-
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            //ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.READ_EXTERNAL_STORAGE},1);
-            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                Snackbar.make(view, "Permission needed for gallery", Snackbar.LENGTH_INDEFINITE).setAction("Give Permission",
+                    View.OnClickListener {
+                        permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }).show()
+            } else {
+                permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
         } else {
             val intentToGallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            //startActivityForResult(intentToGallery,2)
             activityResultLauncher.launch(intentToGallery)
-
         }
-
     }
 
-    /*
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-
-        if (requestCode == 1) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Intent intentToGallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                //startActivityForResult(intentToGallery,2);
-                activityResultLauncher.launch(intentToGallery);
-
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-
-     */
-    fun registerLauncher() {
-        activityResultLauncher = registerForActivityResult(
-            StartActivityForResult()
-        ) { result ->
+    private fun registerLauncher() {
+        activityResultLauncher = registerForActivityResult(StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 val intentFromResult = result.data
                 if (intentFromResult != null) {
                     val imageData = intentFromResult.data
                     try {
                         if (Build.VERSION.SDK_INT >= 28) {
-                            val source = ImageDecoder.createSource(
-                                this@DetailsActivity.contentResolver,
-                                imageData!!
-                            )
+                            val source = ImageDecoder.createSource(this@DetailsActivity.contentResolver, imageData!!)
                             selectedBitmap = ImageDecoder.decodeBitmap(source)
                             binding.imageView.setImageBitmap(selectedBitmap)
                         } else {
-                            selectedBitmap = MediaStore.Images.Media.getBitmap(
-                                this@DetailsActivity.contentResolver,
-                                imageData
-                            )
+                            selectedBitmap = MediaStore.Images.Media.getBitmap(this@DetailsActivity.contentResolver, imageData)
                             binding.imageView.setImageBitmap(selectedBitmap)
                         }
                     } catch (e: IOException) {
@@ -210,76 +181,16 @@ class DetailsActivity : AppCompatActivity() {
                 }
             }
         }
-        permissionLauncher = registerForActivityResult(
-            RequestPermission()
-        ) { result ->
+        permissionLauncher = registerForActivityResult(RequestPermission()) { result ->
             if (result) {
                 //permission granted
-                val intentToGallery =
-                    Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                val intentToGallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
                 activityResultLauncher.launch(intentToGallery)
             } else {
                 //permission denied
-                Toast.makeText(this@DetailsActivity, "Permisson needed!", Toast.LENGTH_LONG)
-                    .show()
+                Toast.makeText(this@DetailsActivity, "Permisson needed!", Toast.LENGTH_LONG).show()
             }
         }
     }
-
-
-    /*
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == 1) {
-
-            if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                val intentToGallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-                startActivityForResult(intentToGallery,2)
-            }
-
-        }
-
-
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-
-        if ( requestCode == 2 && resultCode == Activity.RESULT_OK && data != null) {
-
-              selectedPicture = data.data
-
-            try {
-
-                if (selectedPicture != null) {
-
-                    if (Build.VERSION.SDK_INT >= 28) {
-                        val source =
-                            ImageDecoder.createSource(this.contentResolver, selectedPicture!!)
-                        selectedBitmap = ImageDecoder.decodeBitmap(source)
-                        binding.imageView.setImageBitmap(selectedBitmap)
-                    } else {
-                        selectedBitmap =
-                            MediaStore.Images.Media.getBitmap(this.contentResolver, selectedPicture)
-                        binding.imageView.setImageBitmap(selectedBitmap)
-                    }
-                }
-            } catch (e: Exception) {
-
-            }
-
-        }
-
-
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
-     */
-
-
 
 }
