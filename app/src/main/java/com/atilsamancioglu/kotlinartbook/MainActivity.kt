@@ -49,13 +49,9 @@ class MainActivity : AppCompatActivity() {
 
             cursor.close()
 
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-
-
 
     }
 

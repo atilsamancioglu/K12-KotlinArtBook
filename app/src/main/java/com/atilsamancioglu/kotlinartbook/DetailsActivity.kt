@@ -103,8 +103,7 @@ class DetailsActivity : AppCompatActivity() {
                 val database = this.openOrCreateDatabase("Arts", Context.MODE_PRIVATE, null)
                 database.execSQL("CREATE TABLE IF NOT EXISTS arts (id INTEGER PRIMARY KEY, artname VARCHAR, artistname VARCHAR, year VARCHAR, image BLOB)")
 
-                val sqlString =
-                    "INSERT INTO arts (artname, artistname, year, image) VALUES (?, ?, ?, ?)"
+                val sqlString = "INSERT INTO arts (artname, artistname, year, image) VALUES (?, ?, ?, ?)"
                 val statement = database.compileStatement(sqlString)
                 statement.bindString(1, artName)
                 statement.bindString(2, artistName)
