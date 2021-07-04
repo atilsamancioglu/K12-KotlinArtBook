@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
@@ -29,13 +30,16 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDetailsBinding
     private lateinit var activityResultLauncher: ActivityResultLauncher<Intent>
     private lateinit var permissionLauncher: ActivityResultLauncher<String>
-
+    private lateinit var database : SQLiteDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDetailsBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        database = this.openOrCreateDatabase("Arts", Context.MODE_PRIVATE,null)
+
 
         registerLauncher()
 
@@ -55,9 +59,6 @@ class DetailsActivity : AppCompatActivity() {
         } else {
             binding.button.visibility = View.INVISIBLE
             val selectedId = intent.getIntExtra("id",1)
-
-
-            val database = this.openOrCreateDatabase("Arts", Context.MODE_PRIVATE,null)
 
             val cursor = database.rawQuery("SELECT * FROM arts WHERE id = ?", arrayOf(selectedId.toString()))
 
@@ -100,7 +101,6 @@ class DetailsActivity : AppCompatActivity() {
 
             try {
 
-                val database = this.openOrCreateDatabase("Arts", Context.MODE_PRIVATE, null)
                 database.execSQL("CREATE TABLE IF NOT EXISTS arts (id INTEGER PRIMARY KEY, artname VARCHAR, artistname VARCHAR, year VARCHAR, image BLOB)")
 
                 val sqlString = "INSERT INTO arts (artname, artistname, year, image) VALUES (?, ?, ?, ?)"
